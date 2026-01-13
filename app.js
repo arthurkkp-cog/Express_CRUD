@@ -32,12 +32,11 @@ app.use(express.urlencoded({ extended: false }))
 
 
 app.get('/', (req, res) => {
-    let sql = "SELECT * FROM users";
-    connection.query(sql, (err, rows) => {
+    connection.query('CALL sp_get_all_users()', (err, results) => {
         if(err) throw err;
         res.render('user_index', {
             title : 'This is the user_index page',
-            users : rows
+            users : results[0]
         });
     });
 });
@@ -55,9 +54,8 @@ app.get('/add', (req, res) => {
 });
 
 app.post('/save', (req , res) => {
-    let data = {name: req.body.name, email: req.body.email, phone_no: req.body.phone_no};
-    let sql = "INSERT INTO users SET ?";
-    connection.query(sql, data, (err, results) => {
+    const { name, email, phone_no } = req.body;
+    connection.query('CALL sp_insert_user(?, ?, ?)', [name, email, phone_no], (err, results) => {
         if (err) throw err;
         res.redirect('/');
     });
@@ -65,8 +63,7 @@ app.post('/save', (req , res) => {
 
 app.get('/delete/:userId', (req,res) => {
     const userID = req.params.userId;
-    let sql = `DELETE FROM users WHERE id = ${userID}`;
-    connection.query(sql, (err, result) => {
+    connection.query('CALL sp_delete_user(?)', [userID], (err, result) => {
         if (err) throw err;
         res.redirect('/');
     });
@@ -74,23 +71,19 @@ app.get('/delete/:userId', (req,res) => {
 
 app.get('/edit/:userId', (req, res) => {
     const userID = req.params.userId;
-    let sql = `SELECT * FROM users
-               WHERE users.id = ${userID}`;
-    connection.query(sql, (err, result) => {
+    connection.query('CALL sp_get_user_by_id(?)', [userID], (err, results) => {
         if (err) throw err;
-        console.log(result[0])
+        console.log(results[0][0])
         res.render('user_edit', {
             title: 'This is edit user page',
-            user: result[0]
+            user: results[0][0]
         });
     });
 });
 
 app.post('/update', (req, res) => {
-    let data = {name: req.body.name, email: req.body.email, phone_no: req.body.phone_no}
-    let userId = req.body.id;
-    let sql = `UPDATE users SET ? WHERE users.id = ${userId}`
-    connection.query(sql, data, (err, result) => {
+    const { id, name, email, phone_no } = req.body;
+    connection.query('CALL sp_update_user(?, ?, ?, ?)', [id, name, email, phone_no], (err, result) => {
         if (err) throw err;
         res.redirect('/');
     })
